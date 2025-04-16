@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: booking-service
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  mvc:
+    servlet:
+      path: /api/v1
+  main:
+    allow-bean-definition-overriding: true
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+        web: DEBUG
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
