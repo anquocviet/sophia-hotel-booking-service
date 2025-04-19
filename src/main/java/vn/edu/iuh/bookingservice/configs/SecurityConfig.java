@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 import vn.edu.iuh.bookingservice.filters.JWTAuthenticationFilter;
 
 /**
@@ -19,12 +20,18 @@ import vn.edu.iuh.bookingservice.filters.JWTAuthenticationFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
+   private final CorsConfigurationSource corsConfigurationSource;
+
+   public SecurityConfig(CorsConfigurationSource corsConfigurationSource) {
+      this.corsConfigurationSource = corsConfigurationSource;
+   }
 
    @Bean
    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
       http.csrf(AbstractHttpConfigurer::disable)
+          .cors(cors -> cors.configurationSource(corsConfigurationSource))
           .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-              .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "swagger-ui.html").permitAll()
+              .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .anyRequest().authenticated()
           )
           .addFilterBefore(new JWTAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
