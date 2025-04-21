@@ -115,14 +115,27 @@ public class CartServiceImpl implements CartService {
 //        }
 //        return cartMapper.toResponse(cart);
 //    }
-@Override
-public List<CartResponse> getCartsByUserId(UUID userId) {
-    List<Cart> carts = cartRepository.findByUserId(userId);
-    if (carts.isEmpty()) {
-        throw new ResourceNotFoundException("Cart", "userId", userId);
+//@Override
+//public List<CartResponse> getCartsByUserId(UUID userId) {
+//    List<Cart> carts = cartRepository.findByUserId(userId);
+//    if (carts.isEmpty()) {
+//        throw new ResourceNotFoundException("Cart", "userId", userId);
+//    }
+//    return carts.stream().map(cartMapper::toResponse).collect(Collectors.toList());
+//}
+
+    @Override
+    public List<UUID> getCartsByUserId(UUID userId) {
+        List<Cart> carts = cartRepository.findByUserId(userId);
+        if (carts.isEmpty()) {
+            throw new ResourceNotFoundException("Cart", "userId", userId);
+        }
+
+        return carts.stream()
+                .flatMap(cart -> cart.getCartItems().stream())
+                .map(CartItem::getRoomId)
+                .collect(Collectors.toList());
     }
-    return carts.stream().map(cartMapper::toResponse).collect(Collectors.toList());
-}
     
     private Cart findCartById(UUID id) {
         return cartRepository.findById(id)

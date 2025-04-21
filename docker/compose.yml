@@ -7,29 +7,13 @@ services:
       context: ../
       target: runtime
     ports:
-      - "8082:8082"
+      - "8083:8083"
     environment:
       - SPRING_PROFILES_ACTIVE=prod
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=https://sophia-hotel-discovery-service-xq0g.onrender.com/eureka/
-      - DATABASE_URL=jdbc:postgresql://booking-postgres:5433/postgres
-      - DATABASE_USERNAME=postgres
-      - DATABASE_PASSWORD=postgres
-    depends_on:
-      - booking-postgres
-    networks:
-      - sophia_hotel
-
-  booking-postgres:
-    container_name: booking-postgres
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - booking-postgres:/var/lib/postgresql/data
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka
+      - DATABASE_URL=jdbc:postgresql://ep-summer-sun-a1oui0l5.ap-southeast-1.pg.koyeb.app/koyebdb
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=npg_R3lfHGTMV5kA
     networks:
       - sophia_hotel
 

@@ -51,8 +51,12 @@ public class CartController {
 //    public ResponseEntity<CartResponse> getCartByUserId(@PathVariable UUID userId) {
 //        return ResponseEntity.ok(cartService.getCartByUserId(userId));
 //    }
+//@GetMapping("/user/{userId}")
+//public ResponseEntity<List<CartResponse>> getCartsByUserId(@PathVariable UUID userId) {
+//    return ResponseEntity.ok(cartService.getCartsByUserId(userId));
+//}
 @GetMapping("/user/{userId}")
-public ResponseEntity<List<CartResponse>> getCartsByUserId(@PathVariable UUID userId) {
+public ResponseEntity<List<UUID>> getCartsByUserId(@PathVariable UUID userId) {
     return ResponseEntity.ok(cartService.getCartsByUserId(userId));
 }
 }
