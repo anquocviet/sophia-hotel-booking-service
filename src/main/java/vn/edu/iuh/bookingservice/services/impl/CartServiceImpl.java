@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -106,14 +107,22 @@ public class CartServiceImpl implements CartService {
         cartRepository.save(cart);
     }
 
-    @Override
-    public CartResponse getCartByUserId(UUID userId) {
-        Cart cart = cartRepository.findByUserId(userId);
-        if (cart == null) {
-            throw new ResourceNotFoundException("Cart", "userId", userId);
-        }
-        return cartMapper.toResponse(cart);
+//    @Override
+//    public CartResponse getCartByUserId(UUID userId) {
+//        Cart cart = cartRepository.findByUserId(userId);
+//        if (cart == null) {
+//            throw new ResourceNotFoundException("Cart", "userId", userId);
+//        }
+//        return cartMapper.toResponse(cart);
+//    }
+@Override
+public List<CartResponse> getCartsByUserId(UUID userId) {
+    List<Cart> carts = cartRepository.findByUserId(userId);
+    if (carts.isEmpty()) {
+        throw new ResourceNotFoundException("Cart", "userId", userId);
     }
+    return carts.stream().map(cartMapper::toResponse).collect(Collectors.toList());
+}
     
     private Cart findCartById(UUID id) {
         return cartRepository.findById(id)
