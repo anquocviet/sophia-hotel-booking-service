@@ -18,6 +18,5 @@ public interface CartService {
 //    List<CartResponse> getCartsByUserId(UUID userId);
 
     List<UUID> getCartsByUserId(UUID userId);
-
 }
 

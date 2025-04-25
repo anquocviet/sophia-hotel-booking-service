@@ -1,17 +1,21 @@
 package vn.edu.iuh.bookingservice.services;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
 
 import java.util.UUID;
+import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 
 public interface TransactionService {
     TransactionResponse createTransaction(TransactionRequest request);
     TransactionResponse getTransactionById(UUID id);
-    Page<TransactionResponse> getAllTransactions(Pageable pageable);
+    List<TransactionResponse> getAllTransactions();
     TransactionResponse updateTransaction(UUID id, TransactionRequest request);
     void deleteTransaction(UUID id);
     TransactionResponse getTransactionByCartId(UUID cartId);
+
+    List<TransactionResponse> getTransactionsByCartId(UUID cartId);
+
+    List<TransactionResponse> getTransactionsByPaymentStatus(PaymentStatus status);
 }

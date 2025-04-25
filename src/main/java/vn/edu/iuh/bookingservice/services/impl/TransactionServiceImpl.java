@@ -2,13 +2,14 @@ package vn.edu.iuh.bookingservice.services.impl;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
 import vn.edu.iuh.bookingservice.entities.Transaction;
+import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 import vn.edu.iuh.bookingservice.exceptions.BadRequestException;
 import vn.edu.iuh.bookingservice.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.bookingservice.mappers.TransactionMapper;
@@ -49,9 +50,11 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Page<TransactionResponse> getAllTransactions(Pageable pageable) {
-        Page<Transaction> transactions = transactionRepository.findAll(pageable);
-        return transactions.map(transactionMapper::toResponse);
+    public List<TransactionResponse> getAllTransactions() {
+        List<Transaction> transactions = (List<Transaction>) transactionRepository.findAll();
+        return transactions.stream()
+                .map(transactionMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -91,7 +94,23 @@ public class TransactionServiceImpl implements TransactionService {
         }
         return transactionMapper.toResponse(transaction);
     }
-    
+
+    @Override
+    public List<TransactionResponse> getTransactionsByCartId(UUID cartId) {
+        List<Transaction> transactions = transactionRepository.findAllByCart_Id(cartId);
+        return transactions.stream()
+                .map(transactionMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public List<TransactionResponse> getTransactionsByPaymentStatus(PaymentStatus status) {
+        List<Transaction> transactions = transactionRepository.findAllByPaymentStatus(status);
+        return transactions.stream()
+                .map(transactionMapper::toResponse)
+                .toList();
+    }
+
     private Transaction findTransactionById(UUID id) {
         return transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", "id", id));

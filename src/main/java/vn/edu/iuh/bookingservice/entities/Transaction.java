@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Where;
 import vn.edu.iuh.bookingservice.enums.PaymentMethod;
 import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 
@@ -19,6 +20,7 @@ import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 @Setter
 @Entity
 @Table(name = "transactions")
+@Where(clause = "deleted_at is null")
 public class Transaction {
 
   @Id

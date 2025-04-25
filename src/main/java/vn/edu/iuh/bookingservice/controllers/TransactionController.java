@@ -9,8 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
+import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 import vn.edu.iuh.bookingservice.services.TransactionService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -31,13 +33,18 @@ public class TransactionController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<TransactionResponse>> getAllTransactions(Pageable pageable) {
-        return ResponseEntity.ok(transactionService.getAllTransactions(pageable));
+    public ResponseEntity<List<TransactionResponse>> getAllTransactions() {
+        return ResponseEntity.ok(transactionService.getAllTransactions());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<TransactionResponse> updateTransaction(@PathVariable UUID id, @Valid @RequestBody TransactionRequest request) {
         return ResponseEntity.ok(transactionService.updateTransaction(id, request));
+    }
+
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<TransactionResponse>> getTransactionsByPaymentStatus(@PathVariable PaymentStatus status) {
+        return ResponseEntity.ok(transactionService.getTransactionsByPaymentStatus(status));
     }
 
     @DeleteMapping("/{id}")

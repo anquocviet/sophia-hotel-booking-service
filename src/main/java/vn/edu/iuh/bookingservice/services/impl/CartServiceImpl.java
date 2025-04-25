@@ -5,9 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import vn.edu.iuh.bookingservice.dtos.requests.CartItemRequest;
 import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
+import vn.edu.iuh.bookingservice.dtos.responses.RoomResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
 import vn.edu.iuh.bookingservice.entities.CartItem;
 import vn.edu.iuh.bookingservice.exceptions.BadRequestException;
@@ -30,6 +32,9 @@ public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
     private final CartMapper cartMapper;
+    private final RestTemplate restTemplate;
+    
+    private static final String HOTEL_SERVICE_URL = "http://hotel-service:8082/api/v1/hotels/{hotelId}/rooms/{roomId}";
     private final CartItemMapper cartItemMapper;
 
     @Override
@@ -90,7 +95,9 @@ public class CartServiceImpl implements CartService {
             
             // Calculate total price
             double totalPrice = request.getCartItems().stream()
-                    .mapToDouble(item -> item.getPrice() != null ? item.getPrice() : 0.0)
+                    .mapToDouble(item -> {
+                      return item.getPrice() != null ? item.getPrice() : 0.0;
+                    })
                     .sum();
             cart.setTotalPrice(totalPrice);
         }
@@ -142,6 +149,25 @@ public class CartServiceImpl implements CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart", "id", id));
     }
     
+    private Double fetchRoomPrice(UUID hotelId, UUID roomId) {
+        try {
+            RoomResponse roomResponse = restTemplate.getForObject(
+                HOTEL_SERVICE_URL, 
+                RoomResponse.class, 
+                hotelId.toString(), 
+                roomId.toString()
+            );
+            
+            if (roomResponse == null || roomResponse.getPrice() == null) {
+                throw new BadRequestException("Could not fetch room price information");
+            }
+            
+            return roomResponse.getPrice();
+        } catch (Exception e) {
+            throw new BadRequestException("Error fetching room information: " + e.getMessage());
+        }
+    }
+    
     private void validateCartRequest(CartRequest request) {
         if (request.getUserId() == null) {
             throw new BadRequestException("User ID is required");
@@ -156,16 +182,16 @@ public class CartServiceImpl implements CartService {
                 throw new BadRequestException("Room ID is required for all cart items");
             }
             
-            if (item.getCheckinDate() == null) {
-                throw new BadRequestException("Check-in date is required for all cart items");
-            }
-            
-            if (item.getCheckoutDate() == null) {
-                throw new BadRequestException("Check-out date is required for all cart items");
-            }
-            
-            if (item.getPrice() == null || item.getPrice() <= 0) {
-                throw new BadRequestException("Price must be greater than zero for all cart items");
+                if (item.getHotelId() == null) {
+                    throw new BadRequestException("Hotel ID is required for all cart items");
+                }
+                
+                if (item.getCheckinDate() == null) {
+                    throw new BadRequestException("Check-in date is required for all cart items");
+                }
+                
+                if (item.getCheckoutDate() == null) {
+                    throw new BadRequestException("Check-out date is required for all cart items");
             }
             
             if (item.getCheckinDate().after(item.getCheckoutDate())) {

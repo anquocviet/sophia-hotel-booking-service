@@ -21,5 +21,6 @@ public class CartResponse {
     private CartStatus status;
     private Timestamp createdAt;
     private Timestamp updatedAt;
+    private Timestamp deletedAt;
     private List<CartItemResponse> cartItems;
 }

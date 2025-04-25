@@ -18,6 +18,9 @@ public class CartItemRequest {
     @NotNull(message = "Room ID is required")
     private UUID roomId;
     
+    @NotNull(message = "Hotel ID is required")
+    private UUID hotelId;
+    
     @NotNull(message = "Check-in date is required")
     private Timestamp checkinDate;
     
