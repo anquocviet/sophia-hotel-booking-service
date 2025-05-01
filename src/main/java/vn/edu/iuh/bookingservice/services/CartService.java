@@ -5,7 +5,6 @@ import org.springframework.data.domain.Pageable;
 import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface CartService {
@@ -14,9 +13,6 @@ public interface CartService {
     Page<CartResponse> getAllCarts(Pageable pageable);
     CartResponse updateCart(UUID id, CartRequest request);
     void deleteCart(UUID id);
-//    CartResponse getCartByUserId(UUID userId);
-//    List<CartResponse> getCartsByUserId(UUID userId);
-
-    List<UUID> getCartsByUserId(UUID userId);
+    CartResponse getCartByUserId(UUID userId);
 }
 

@@ -17,7 +17,7 @@ import java.util.UUID;
 public class TransactionResponse {
     private UUID id;
     private String transactionId;
-    private UUID cartId;
+    private CartResponse cart;
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
     private Double paidAmount;

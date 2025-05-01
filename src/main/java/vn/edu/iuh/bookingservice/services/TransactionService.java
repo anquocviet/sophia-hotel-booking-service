@@ -18,4 +18,6 @@ public interface TransactionService {
     List<TransactionResponse> getTransactionsByCartId(UUID cartId);
 
     List<TransactionResponse> getTransactionsByPaymentStatus(PaymentStatus status);
+    
+    List<TransactionResponse> getTransactionsByUserId(UUID userId);
 }

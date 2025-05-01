@@ -20,21 +20,20 @@ public interface TransactionMapper {
     @Mapping(target = "paymentMethod", source = "request.paymentMethod")
     @Mapping(target = "paymentStatus", expression = "java(request.getPaymentStatus() != null ? request.getPaymentStatus() : PaymentStatus.PENDING)")
     @Mapping(target = "paidAmount", source = "request.paidAmount")
-    @Mapping(target = "createAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "deletedAt", ignore = true)
     Transaction toEntity(TransactionRequest request, Cart cart);
     
-    @Mapping(target = "cartId", expression = "java(transaction.getCart() != null ? transaction.getCart().getId() : null)")
-    @Mapping(target = "createdAt", source = "createAt")
     TransactionResponse toResponse(Transaction transaction);
     
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "transactionId", ignore = true)
     @Mapping(target = "cart", ignore = true)
-    @Mapping(target = "createAt", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "deletedAt", expression = "java(null)")
     void updateEntityFromRequest(TransactionRequest request, @MappingTarget Transaction transaction);
     
     default String generateTransactionId() {

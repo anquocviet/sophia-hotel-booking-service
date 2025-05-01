@@ -3,7 +3,6 @@ package vn.edu.iuh.bookingservice.services.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
@@ -54,7 +53,7 @@ public class TransactionServiceImpl implements TransactionService {
         List<Transaction> transactions = (List<Transaction>) transactionRepository.findAll();
         return transactions.stream()
                 .map(transactionMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -93,6 +92,14 @@ public class TransactionServiceImpl implements TransactionService {
             throw new ResourceNotFoundException("Transaction", "cartId", cartId);
         }
         return transactionMapper.toResponse(transaction);
+    }
+
+    @Override
+    public List<TransactionResponse> getTransactionsByUserId(UUID userId) {
+        List<Transaction> transactions = transactionRepository.findAllByCart_UserId(userId);
+        return transactions.stream()
+                .map(transactionMapper::toResponse)
+                .toList();
     }
 
     @Override

@@ -13,4 +13,6 @@ public interface TransactionRepository extends CrudRepository<Transaction, UUID>
     List<Transaction> findAllByPaymentStatus(PaymentStatus paymentStatus);
 
     List<Transaction> findAllByCart_Id(UUID cartId);
+    
+    List<Transaction> findAllByCart_UserId(UUID userId);
 }

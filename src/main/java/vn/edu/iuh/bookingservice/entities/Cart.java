@@ -14,14 +14,12 @@ import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.Where;
 import vn.edu.iuh.bookingservice.enums.CartStatus;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "carts")
-@Where(clause = "deleted_at is null")
 public class Cart {
 
   @Id

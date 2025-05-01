@@ -1,7 +1,6 @@
 package vn.edu.iuh.bookingservice.dtos.requests;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,8 +25,4 @@ public class CartItemRequest {
     
     @NotNull(message = "Check-out date is required")
     private Timestamp checkoutDate;
-    
-    @NotNull(message = "Price is required")
-    @Positive(message = "Price must be greater than zero")
-    private Double price;
 }

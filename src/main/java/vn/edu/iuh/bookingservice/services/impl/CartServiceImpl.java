@@ -24,7 +24,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -44,15 +43,8 @@ public class CartServiceImpl implements CartService {
         
         Cart cart = cartMapper.toEntity(request);
         
-        // Process cart items
-        List<CartItem> cartItems = new ArrayList<>();
-        if (request.getCartItems() != null && !request.getCartItems().isEmpty()) {
-            for (CartItemRequest itemRequest : request.getCartItems()) {
-                CartItem cartItem = cartItemMapper.toEntity(itemRequest, cart);
-                cartItems.add(cartItem);
-            }
-        }
-        cart.setCartItems(cartItems);
+        // Process cart items and calculate total prices
+        processCartItems(cart, request.getCartItems());
         
         Cart savedCart = cartRepository.save(cart);
         return cartMapper.toResponse(savedCart);
@@ -87,19 +79,8 @@ public class CartServiceImpl implements CartService {
                 cart.setCartItems(new ArrayList<>());
             }
             
-            // Add new items
-            for (CartItemRequest itemRequest : request.getCartItems()) {
-                CartItem cartItem = cartItemMapper.toEntity(itemRequest, cart);
-                cart.getCartItems().add(cartItem);
-            }
-            
-            // Calculate total price
-            double totalPrice = request.getCartItems().stream()
-                    .mapToDouble(item -> {
-                      return item.getPrice() != null ? item.getPrice() : 0.0;
-                    })
-                    .sum();
-            cart.setTotalPrice(totalPrice);
+            // Process cart items and calculate total prices
+            processCartItems(cart, request.getCartItems());
         }
         
         Cart updatedCart = cartRepository.save(cart);
@@ -114,43 +95,100 @@ public class CartServiceImpl implements CartService {
         cartRepository.save(cart);
     }
 
-//    @Override
-//    public CartResponse getCartByUserId(UUID userId) {
-//        Cart cart = cartRepository.findByUserId(userId);
-//        if (cart == null) {
-//            throw new ResourceNotFoundException("Cart", "userId", userId);
-//        }
-//        return cartMapper.toResponse(cart);
-//    }
-//@Override
-//public List<CartResponse> getCartsByUserId(UUID userId) {
-//    List<Cart> carts = cartRepository.findByUserId(userId);
-//    if (carts.isEmpty()) {
-//        throw new ResourceNotFoundException("Cart", "userId", userId);
-//    }
-//    return carts.stream().map(cartMapper::toResponse).collect(Collectors.toList());
-//}
-
     @Override
-    public List<UUID> getCartsByUserId(UUID userId) {
-        List<Cart> carts = cartRepository.findByUserId(userId);
-        if (carts.isEmpty()) {
+    public CartResponse getCartByUserId(UUID userId) {
+        if (userId == null) {
+            throw new BadRequestException("User ID cannot be null");
+        }
+        
+        List<Cart> userCarts = cartRepository.findByUserId(userId);
+        if (userCarts.isEmpty()) {
             throw new ResourceNotFoundException("Cart", "userId", userId);
         }
-
-        return carts.stream()
-                .flatMap(cart -> cart.getCartItems().stream())
-                .map(CartItem::getRoomId)
-                .collect(Collectors.toList());
+        
+        // Find the most recent active cart
+        Cart activeCart = userCarts.stream()
+                .filter(cart -> cart.getStatus() != null && 
+                               !cart.getStatus().isTerminal())
+                .findFirst()
+                .orElse(
+                    // If no active cart, return the most recent cart
+                    userCarts.stream()
+                        .max((cart1, cart2) -> {
+                            if (cart1.getCreatedAt() == null) return -1;
+                            if (cart2.getCreatedAt() == null) return 1;
+                            return cart1.getCreatedAt().compareTo(cart2.getCreatedAt());
+                        })
+                        .orElse(userCarts.get(0))
+                );
+        
+        return cartMapper.toResponse(activeCart);
     }
-    
+
     private Cart findCartById(UUID id) {
+        if (id == null) {
+            throw new BadRequestException("Cart ID cannot be null");
+        }
         return cartRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart", "id", id));
     }
     
-    private Double fetchRoomPrice(UUID hotelId, UUID roomId) {
+    /**
+     * Process cart items, fetch room information, and calculate total prices
+     * 
+     * @param cart the cart to process
+     * @param cartItemRequests the cart item requests
+     */
+    private void processCartItems(Cart cart, List<CartItemRequest> cartItemRequests) {
+        if (cartItemRequests == null || cartItemRequests.isEmpty()) {
+            return;
+        }
+        
+        // Prepare carts items list if not present
+        if (cart.getCartItems() == null) {
+            cart.setCartItems(new ArrayList<>());
+        }
+        
+        // Process each item request
+        for (CartItemRequest itemRequest : cartItemRequests) {
+            CartItem cartItem = cartItemMapper.toEntity(itemRequest, cart);
+            
+            // Fetch room from hotel service
+            RoomResponse roomResponse = fetchRoom(itemRequest.getHotelId(), itemRequest.getRoomId());
+            if (roomResponse.getPrice() != null) {
+                cartItem.setPrice(roomResponse.getPrice());
+            }
+            
+            cart.getCartItems().add(cartItem);
+        }
+        
+        // Calculate total price
+        calculateAndSetTotalPrice(cart);
+    }
+    
+    /**
+     * Calculate and set the total price for a cart
+     * 
+     * @param cart the cart to calculate price for
+     */
+    private void calculateAndSetTotalPrice(Cart cart) {
+        double totalPrice = cart.getCartItems().stream()
+                .mapToDouble(item -> {
+                    if (item.getPrice() == null) return 0.0;
+                    // Calculate numbers of days between checkin and checkout
+                    long days = calculateDaysBetween(item.getCheckinDate(), item.getCheckoutDate());
+                    return item.getPrice() * days;
+                })
+                .sum();
+        cart.setTotalPrice(totalPrice);
+    }
+    
+    private RoomResponse fetchRoom(UUID hotelId, UUID roomId) {
         try {
+            if (hotelId == null || roomId == null) {
+                throw new BadRequestException("Hotel ID and Room ID must not be null");
+            }
+            
             RoomResponse roomResponse = restTemplate.getForObject(
                 HOTEL_SERVICE_URL, 
                 RoomResponse.class, 
@@ -158,45 +196,109 @@ public class CartServiceImpl implements CartService {
                 roomId.toString()
             );
             
-            if (roomResponse == null || roomResponse.getPrice() == null) {
-                throw new BadRequestException("Could not fetch room price information");
+            if (roomResponse == null) {
+                throw new BadRequestException("Room information not found");
             }
             
-            return roomResponse.getPrice();
+            if (roomResponse.getPrice() == null) {
+                throw new BadRequestException("Room price information is missing");
+            }
+            
+            return roomResponse;
         } catch (Exception e) {
             throw new BadRequestException("Error fetching room information: " + e.getMessage());
         }
     }
     
+    /**
+     * Calculates the number of days between two timestamps.
+     * @param start the checkin date
+     * @param end the checkout date
+     * @return the number of days (minimum 1)
+     */
+    private long calculateDaysBetween(Timestamp start, Timestamp end) {
+        if (start == null || end == null) return 1;
+        
+        long diffInMillis = end.getTime() - start.getTime();
+        long diffInDays = diffInMillis / (24 * 60 * 60 * 1000);
+        
+        // Ensure at least 1 day is charged even for same-day stays
+        return Math.max(diffInDays, 1);
+    }
+    
+    /**
+     * Validates the cart request for mandatory fields and business rules
+     * 
+     * @param request the cart request to validate
+     * @throws BadRequestException if validation fails
+     */
     private void validateCartRequest(CartRequest request) {
+        if (request == null) {
+            throw new BadRequestException("Cart request cannot be null");
+        }
+        
         if (request.getUserId() == null) {
             throw new BadRequestException("User ID is required");
         }
         
-        if (request.getCartItems() == null || request.getCartItems().isEmpty()) {
+        validateCartItems(request.getCartItems());
+    }
+    
+    /**
+     * Validates the cart items collection
+     * 
+     * @param cartItems the cart items to validate
+     * @throws BadRequestException if validation fails
+     */
+    private void validateCartItems(List<CartItemRequest> cartItems) {
+        if (cartItems == null || cartItems.isEmpty()) {
             throw new BadRequestException("Cart must contain at least one item");
         }
         
-        for (CartItemRequest item : request.getCartItems()) {
-            if (item.getRoomId() == null) {
-                throw new BadRequestException("Room ID is required for all cart items");
-            }
-            
-                if (item.getHotelId() == null) {
-                    throw new BadRequestException("Hotel ID is required for all cart items");
-                }
-                
-                if (item.getCheckinDate() == null) {
-                    throw new BadRequestException("Check-in date is required for all cart items");
-                }
-                
-                if (item.getCheckoutDate() == null) {
-                    throw new BadRequestException("Check-out date is required for all cart items");
-            }
-            
-            if (item.getCheckinDate().after(item.getCheckoutDate())) {
-                throw new BadRequestException("Check-in date must be before check-out date");
-            }
+        for (CartItemRequest item : cartItems) {
+            validateCartItem(item);
+        }
+    }
+    
+    /**
+     * Validates a single cart item
+     * 
+     * @param item the cart item to validate
+     * @throws BadRequestException if validation fails
+     */
+    private void validateCartItem(CartItemRequest item) {
+        if (item == null) {
+            throw new BadRequestException("Cart item cannot be null");
+        }
+        
+        if (item.getRoomId() == null) {
+            throw new BadRequestException("Room ID is required for all cart items");
+        }
+        
+        if (item.getHotelId() == null) {
+            throw new BadRequestException("Hotel ID is required for all cart items");
+        }
+        
+        validateCartItemDates(item);
+    }
+    
+    /**
+     * Validates the dates in a cart item
+     * 
+     * @param item the cart item with dates to validate
+     * @throws BadRequestException if validation fails
+     */
+    private void validateCartItemDates(CartItemRequest item) {
+        if (item.getCheckinDate() == null) {
+            throw new BadRequestException("Check-in date is required for all cart items");
+        }
+        
+        if (item.getCheckoutDate() == null) {
+            throw new BadRequestException("Check-out date is required for all cart items");
+        }
+        
+        if (item.getCheckinDate().after(item.getCheckoutDate())) {
+            throw new BadRequestException("Check-in date must be before check-out date");
         }
     }
 }

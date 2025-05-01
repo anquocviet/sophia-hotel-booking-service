@@ -12,12 +12,12 @@ import java.time.Instant;
 @Mapper(componentModel = "spring", imports = {Timestamp.class, Instant.class})
 public interface CartItemMapper {
 
+    @Mapping(target = "price", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cart", source = "cart")
     @Mapping(target = "roomId", source = "request.roomId")
     @Mapping(target = "checkinDate", source = "request.checkinDate")
     @Mapping(target = "checkoutDate", source = "request.checkoutDate")
-    @Mapping(target = "price", source = "request.price")
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "deletedAt", ignore = true)
@@ -30,5 +30,7 @@ public interface CartItemMapper {
     @Mapping(target = "cart", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
+    @Mapping(target = "deletedAt", expression = "java(null)")
+    @Mapping(target = "price", ignore = true)
     void updateEntityFromRequest(CartItemRequest request, @MappingTarget CartItem cartItem);
 }

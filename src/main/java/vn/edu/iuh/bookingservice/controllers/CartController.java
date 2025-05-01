@@ -11,7 +11,6 @@ import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
 import vn.edu.iuh.bookingservice.services.CartService;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -47,16 +46,8 @@ public class CartController {
         return ResponseEntity.noContent().build();
     }
 
-//    @GetMapping("/user/{userId}")
-//    public ResponseEntity<CartResponse> getCartByUserId(@PathVariable UUID userId) {
-//        return ResponseEntity.ok(cartService.getCartByUserId(userId));
-//    }
-//@GetMapping("/user/{userId}")
-//public ResponseEntity<List<CartResponse>> getCartsByUserId(@PathVariable UUID userId) {
-//    return ResponseEntity.ok(cartService.getCartsByUserId(userId));
-//}
-@GetMapping("/user/{userId}")
-public ResponseEntity<List<UUID>> getCartsByUserId(@PathVariable UUID userId) {
-    return ResponseEntity.ok(cartService.getCartsByUserId(userId));
-}
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<CartResponse> getCartsByUserId(@PathVariable UUID userId) {
+        return ResponseEntity.ok(cartService.getCartByUserId(userId));
+    }
 }

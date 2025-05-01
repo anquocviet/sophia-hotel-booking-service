@@ -18,9 +18,9 @@ public interface CartMapper {
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "deletedAt", ignore = true)
-    @Mapping(target = "totalPrice", expression = "java(calculateTotalPrice(request))")
     @Mapping(target = "cartItems", ignore = true)
     @Mapping(target = "transaction", ignore = true)
+    @Mapping(target = "totalPrice", ignore = true)
     Cart toEntity(CartRequest request);
 
     @Mapping(target = "cartItems", source = "cartItems")
@@ -32,14 +32,7 @@ public interface CartMapper {
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "cartItems", ignore = true)
     @Mapping(target = "transaction", ignore = true)
+    @Mapping(target = "totalPrice", ignore = true)
+    @Mapping(target = "deletedAt", expression = "java(null)")
     void updateEntityFromRequest(CartRequest request, @MappingTarget Cart cart);
-
-    default Double calculateTotalPrice(CartRequest request) {
-        if (request.getCartItems() == null || request.getCartItems().isEmpty()) {
-            return 0.0;
-        }
-        return request.getCartItems().stream()
-                .mapToDouble(item -> item.getPrice() != null ? item.getPrice() : 0.0)
-                .sum();
-    }
 }
