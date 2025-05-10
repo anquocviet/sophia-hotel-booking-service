@@ -2,8 +2,7 @@ package vn.edu.iuh.bookingservice.services.impl;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import vn.edu.iuh.bookingservice.dtos.requests.CartItemRequest;
@@ -22,7 +21,6 @@ import vn.edu.iuh.bookingservice.services.CartService;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -57,9 +55,11 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public Page<CartResponse> getAllCarts(Pageable pageable) {
-        Page<Cart> carts = cartRepository.findAll(pageable);
-        return carts.map(cartMapper::toResponse);
+    public List<CartResponse> getAllCarts() {
+        List<Cart> carts = (List<Cart>) cartRepository.findAll();
+        return carts.stream()
+                .map(cartMapper::toResponse)
+                .toList();
     }
 
     @Override

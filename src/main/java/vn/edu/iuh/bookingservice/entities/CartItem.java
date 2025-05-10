@@ -30,6 +30,9 @@ public class CartItem {
 
   private UUID roomId;
 
+  @Column(name = "hotel_id")
+  private UUID hotelId;
+
   @Column(name = "checkin_date")
   private Timestamp checkinDate;
 

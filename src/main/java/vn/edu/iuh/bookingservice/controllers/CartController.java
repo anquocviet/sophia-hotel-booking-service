@@ -2,8 +2,6 @@ package vn.edu.iuh.bookingservice.controllers;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +9,7 @@ import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
 import vn.edu.iuh.bookingservice.services.CartService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -31,8 +30,8 @@ public class CartController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<CartResponse>> getAllCarts(Pageable pageable) {
-        return ResponseEntity.ok(cartService.getAllCarts(pageable));
+    public ResponseEntity<List<CartResponse>> getAllCarts() {
+        return ResponseEntity.ok(cartService.getAllCarts());
     }
 
     @PutMapping("/{id}")

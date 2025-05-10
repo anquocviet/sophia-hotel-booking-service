@@ -16,6 +16,7 @@ public interface CartItemMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cart", source = "cart")
     @Mapping(target = "roomId", source = "request.roomId")
+    @Mapping(target = "hotelId", source = "request.hotelId")
     @Mapping(target = "checkinDate", source = "request.checkinDate")
     @Mapping(target = "checkoutDate", source = "request.checkoutDate")
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")

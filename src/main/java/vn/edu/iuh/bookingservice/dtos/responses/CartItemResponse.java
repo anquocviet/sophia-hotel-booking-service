@@ -15,6 +15,7 @@ import java.util.UUID;
 public class CartItemResponse {
     private UUID id;
     private UUID roomId;
+    private UUID hotelId;
     private Timestamp checkinDate;
     private Timestamp checkoutDate;
     private Double price;
