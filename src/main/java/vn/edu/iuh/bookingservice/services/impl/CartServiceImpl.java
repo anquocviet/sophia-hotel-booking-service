@@ -15,6 +15,7 @@ import vn.edu.iuh.bookingservice.exceptions.BadRequestException;
 import vn.edu.iuh.bookingservice.exceptions.ResourceNotFoundException;
 import vn.edu.iuh.bookingservice.mappers.CartItemMapper;
 import vn.edu.iuh.bookingservice.mappers.CartMapper;
+import vn.edu.iuh.bookingservice.repositories.CartItemRepository;
 import vn.edu.iuh.bookingservice.repositories.CartRepository;
 import vn.edu.iuh.bookingservice.services.CartService;
 
@@ -28,6 +29,7 @@ import java.util.UUID;
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
     private final CartMapper cartMapper;
     private final RestTemplate restTemplate;
     
@@ -173,6 +175,7 @@ public class CartServiceImpl implements CartService {
      */
     private void calculateAndSetTotalPrice(Cart cart) {
         double totalPrice = cart.getCartItems().stream()
+                .filter(item -> item.getDeletedAt() == null) // Only consider non-deleted items
                 .mapToDouble(item -> {
                     if (item.getPrice() == null) return 0.0;
                     // Calculate numbers of days between checkin and checkout
@@ -300,5 +303,38 @@ public class CartServiceImpl implements CartService {
         if (item.getCheckinDate().after(item.getCheckoutDate())) {
             throw new BadRequestException("Check-in date must be before check-out date");
         }
+    }
+    
+    @Override
+    @Transactional
+    public CartResponse removeCartItem(UUID cartId, UUID cartItemId) {
+        if (cartId == null) {
+            throw new BadRequestException("Cart ID cannot be null");
+        }
+        
+        if (cartItemId == null) {
+            throw new BadRequestException("Cart item ID cannot be null");
+        }
+        
+        // Find the cart
+        Cart cart = findCartById(cartId);
+        
+        // Find the cart item
+        CartItem cartItem = cartItemRepository.findByIdAndCartIdAndDeletedAtIsNull(cartItemId, cartId)
+            .orElseThrow(() -> new ResourceNotFoundException("CartItem", "id", cartItemId));
+        
+        // Soft delete the cart item
+        cartItem.setDeletedAt(Timestamp.from(Instant.now()));
+        cartItemRepository.save(cartItem);
+        
+        // No need to manually remove from collection as mapper will filter
+        
+        // Recalculate total price considering only non-deleted items
+        calculateAndSetTotalPrice(cart);
+        
+        // Save the updated cart
+        Cart updatedCart = cartRepository.save(cart);
+        
+        return cartMapper.toResponse(updatedCart);
     }
 }

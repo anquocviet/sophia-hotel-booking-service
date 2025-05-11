@@ -13,5 +13,6 @@ public interface CartService {
     CartResponse updateCart(UUID id, CartRequest request);
     void deleteCart(UUID id);
     CartResponse getCartByUserId(UUID userId);
+    CartResponse removeCartItem(UUID cartId, UUID cartItemId);
 }
 

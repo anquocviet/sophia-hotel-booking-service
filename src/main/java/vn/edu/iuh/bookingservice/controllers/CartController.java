@@ -49,4 +49,11 @@ public class CartController {
     public ResponseEntity<CartResponse> getCartsByUserId(@PathVariable UUID userId) {
         return ResponseEntity.ok(cartService.getCartByUserId(userId));
     }
+    
+    @DeleteMapping("/{cartId}/items/{cartItemId}")
+    public ResponseEntity<CartResponse> removeCartItem(
+            @PathVariable UUID cartId,
+            @PathVariable UUID cartItemId) {
+        return ResponseEntity.ok(cartService.removeCartItem(cartId, cartItemId));
+    }
 }

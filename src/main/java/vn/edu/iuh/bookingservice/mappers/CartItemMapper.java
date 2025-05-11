@@ -1,6 +1,6 @@
 package vn.edu.iuh.bookingservice.mappers;
 
-import org.mapstruct.*;
+import org.springframework.stereotype.Component;
 import vn.edu.iuh.bookingservice.dtos.requests.CartItemRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartItemResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
@@ -8,30 +8,54 @@ import vn.edu.iuh.bookingservice.entities.CartItem;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring", imports = {Timestamp.class, Instant.class})
-public interface CartItemMapper {
-
-    @Mapping(target = "price", ignore = true)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "cart", source = "cart")
-    @Mapping(target = "roomId", source = "request.roomId")
-    @Mapping(target = "hotelId", source = "request.hotelId")
-    @Mapping(target = "checkinDate", source = "request.checkinDate")
-    @Mapping(target = "checkoutDate", source = "request.checkoutDate")
-    @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "deletedAt", ignore = true)
-    CartItem toEntity(CartItemRequest request, Cart cart);
-
-    CartItemResponse toResponse(CartItem cartItem);
-
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "cart", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "deletedAt", expression = "java(null)")
-    @Mapping(target = "price", ignore = true)
-    void updateEntityFromRequest(CartItemRequest request, @MappingTarget CartItem cartItem);
+@Component
+public class CartItemMapper {
+    
+    public CartItem toEntity(CartItemRequest request, Cart cart) {
+        if (request == null) {
+            return null;
+        }
+        
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(cart);
+        cartItem.setRoomId(request.getRoomId());
+        cartItem.setHotelId(request.getHotelId());
+        cartItem.setCheckinDate(request.getCheckinDate());
+        cartItem.setCheckoutDate(request.getCheckoutDate());
+        cartItem.setCreatedAt(Timestamp.from(Instant.now()));
+        
+        return cartItem;
+    }
+    
+    public CartItemResponse toResponse(CartItem cartItem) {
+        if (cartItem == null) {
+            return null;
+        }
+        
+        CartItemResponse response = new CartItemResponse();
+        response.setId(cartItem.getId());
+        response.setRoomId(cartItem.getRoomId());
+        response.setHotelId(cartItem.getHotelId());
+        response.setCheckinDate(cartItem.getCheckinDate());
+        response.setCheckoutDate(cartItem.getCheckoutDate());
+        response.setPrice(cartItem.getPrice());
+        response.setCreatedAt(cartItem.getCreatedAt());
+        response.setUpdatedAt(cartItem.getUpdatedAt());
+        
+        return response;
+    }
+    
+    public List<CartItemResponse> toResponseList(List<CartItem> cartItems) {
+        if (cartItems == null) {
+            return new ArrayList<>();
+        }
+        
+        return cartItems.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
 }

@@ -1,38 +1,72 @@
 package vn.edu.iuh.bookingservice.mappers;
 
-import org.mapstruct.*;
+import org.springframework.stereotype.Component;
 import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
-import vn.edu.iuh.bookingservice.enums.CartStatus;
+import vn.edu.iuh.bookingservice.entities.CartItem;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring", imports = {Timestamp.class, Instant.class, CartStatus.class})
-public interface CartMapper {
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "userId", source = "userId")
-    @Mapping(target = "status", expression = "java(request.getStatus() != null ? request.getStatus() : CartStatus.PENDING)")
-    @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "deletedAt", ignore = true)
-    @Mapping(target = "cartItems", ignore = true)
-    @Mapping(target = "transaction", ignore = true)
-    @Mapping(target = "totalPrice", ignore = true)
-    Cart toEntity(CartRequest request);
-
-    @Mapping(target = "cartItems", source = "cartItems")
-    CartResponse toResponse(Cart cart);
-
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
-    @Mapping(target = "cartItems", ignore = true)
-    @Mapping(target = "transaction", ignore = true)
-    @Mapping(target = "totalPrice", ignore = true)
-    @Mapping(target = "deletedAt", expression = "java(null)")
-    void updateEntityFromRequest(CartRequest request, @MappingTarget Cart cart);
+@Component
+public class CartMapper {
+    
+    private final CartItemMapper cartItemMapper;
+    
+    public CartMapper(CartItemMapper cartItemMapper) {
+        this.cartItemMapper = cartItemMapper;
+    }
+    
+    public Cart toEntity(CartRequest request) {
+        if (request == null) {
+            return null;
+        }
+        
+        Cart cart = new Cart();
+        cart.setUserId(request.getUserId());
+        cart.setStatus(request.getStatus());
+        cart.setCreatedAt(Timestamp.from(Instant.now()));
+        
+        return cart;
+    }
+    
+    public CartResponse toResponse(Cart cart) {
+        if (cart == null) {
+            return null;
+        }
+        
+        CartResponse response = new CartResponse();
+        response.setId(cart.getId());
+        response.setUserId(cart.getUserId());
+        response.setTotalPrice(cart.getTotalPrice());
+        response.setStatus(cart.getStatus());
+        response.setCreatedAt(cart.getCreatedAt());
+        response.setUpdatedAt(cart.getUpdatedAt());
+        
+        // Only map non-deleted cart items
+        if (cart.getCartItems() != null) {
+            List<CartItem> nonDeletedItems = cart.getCartItems().stream()
+                .filter(item -> item.getDeletedAt() == null)
+                .collect(Collectors.toList());
+                
+            response.setCartItems(cartItemMapper.toResponseList(nonDeletedItems));
+        }
+        
+        return response;
+    }
+    
+    public void updateEntityFromRequest(CartRequest request, Cart cart) {
+        if (request == null || cart == null) {
+            return;
+        }
+        
+        if (request.getStatus() != null) {
+            cart.setStatus(request.getStatus());
+        }
+        
+        cart.setUpdatedAt(Timestamp.from(Instant.now()));
+    }
 }
