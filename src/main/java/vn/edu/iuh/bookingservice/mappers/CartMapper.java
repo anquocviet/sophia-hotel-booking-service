@@ -45,6 +45,7 @@ public class CartMapper {
         response.setStatus(cart.getStatus());
         response.setCreatedAt(cart.getCreatedAt());
         response.setUpdatedAt(cart.getUpdatedAt());
+        response.setDeletedAt(cart.getDeletedAt());
         
         // Only map non-deleted cart items
         if (cart.getCartItems() != null) {
