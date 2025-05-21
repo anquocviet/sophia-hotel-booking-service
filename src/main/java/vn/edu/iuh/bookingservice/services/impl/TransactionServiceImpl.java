@@ -1,20 +1,14 @@
 package vn.edu.iuh.bookingservice.services.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import vn.edu.iuh.bookingservice.dtos.requests.PaymentRequest;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
-import vn.edu.iuh.bookingservice.dtos.requests.UpdateRoomStatusRequest;
-import vn.edu.iuh.bookingservice.dtos.responses.PaymentResponse;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
 import vn.edu.iuh.bookingservice.entities.Transaction;
@@ -28,21 +22,17 @@ import vn.edu.iuh.bookingservice.services.TransactionService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.NoSuchElementException;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class TransactionServiceImpl implements TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CartRepository cartRepository;
     private final TransactionMapper transactionMapper;
-    private static final String PAYMENT_SERVICE_URL = "http://payment-service:8084/api/v1";
-    private static final String HOTEL_SERVICE_URL = "http://hotel-service:8082/api/v1";
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -53,18 +43,8 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart", "id", request.getCartId()));
         
         Transaction transaction = transactionMapper.toEntity(request, cart);
-        transaction.setPaidAmount(cart.getTotalPrice());
         Transaction savedTransaction = transactionRepository.save(transaction);
-        cart.setTransaction(savedTransaction);
-        cart.setDeletedAt(Timestamp.from(Instant.now()));
-        cartRepository.save(cart);
-        // Call payment service to process the payment
-        PaymentResponse paymentResponse = createPayment(savedTransaction, request.getCardId());
-        if (paymentResponse.getStatus() != PaymentStatus.COMPLETED) {
-            throw new BadRequestException("Payment failed: " + paymentResponse.getStatus());
-        }
-        transaction.setPaymentStatus(paymentResponse.getStatus());
-        updateRoomStatus(cart);
+        
         return transactionMapper.toResponse(savedTransaction);
     }
 
@@ -161,61 +141,128 @@ public class TransactionServiceImpl implements TransactionService {
         if (request.getPaymentMethod() == null) {
             throw new BadRequestException("Payment method is required");
         }
-    }
-
-    private PaymentResponse createPayment(Transaction transaction, UUID cardId) {
-        try {
-            String url = PAYMENT_SERVICE_URL + "/payments";
-            PaymentRequest paymentRequest = new PaymentRequest(
-                    transaction.getCart().getUserId(),
-                    "VND",
-                    transaction.getPaidAmount(),
-                    transaction.getPaymentMethod(),
-                    cardId
-            );
-
-            // For debugging: log raw response
-            ResponseEntity<String> rawResponse = restTemplate.exchange(
-                  url,
-                  HttpMethod.POST,
-                  new HttpEntity<>(paymentRequest),
-                  String.class
-            );
-            log.debug("Raw response: {}", rawResponse.getBody());
-
-            // Then try to convert to UserDto
-            PaymentResponse paymentDto = objectMapper.readValue(rawResponse.getBody(), PaymentResponse.class);
-            return paymentDto;
-        } catch (Exception e) {
-            log.error("Error create payment", e);
-            throw new RuntimeException("Failed to create payment data: " + e.getMessage());
+        
+        if (request.getPaidAmount() == null || request.getPaidAmount() <= 0) {
+            throw new BadRequestException("Paid amount must be greater than zero");
         }
     }
 
-    private boolean updateRoomStatus(Cart cart) {
-        try {
-            String url = HOTEL_SERVICE_URL + "/rooms/updateRoomStatus";
-            cart.getCartItems().forEach(item -> {
-                UpdateRoomStatusRequest updateRoomStatusRequest = new UpdateRoomStatusRequest(
-                        item.getHotelId().toString(),
-                        item.getRoomId().toString(),
-                        "BOOKED"
-                );
 
-                // For debugging: log raw response
-                ResponseEntity<String> rawResponse = restTemplate.exchange(
-                        url,
-                        HttpMethod.PUT,
-                        new HttpEntity<>(updateRoomStatusRequest),
-                        String.class
-                );
-                log.debug("Raw response: {}", rawResponse.getBody());
-            });
+    /**
+     * b. Thống kê doanh thu (Revenue)
+     * API: GET /api/statistics/revenue?from=YYYY-MM-DD&to=YYYY-MM-DD
+     * Dữ liệu trả về: Doanh thu theo ngày/tháng/năm, có thể group by khách sạn.
+     * Mục đích: Vẽ biểu đồ doanh thu, so sánh các kỳ, phân tích xu hướng.
+     * @param fromDateStr
+     * @param toDateStr
+     * @return
+     */
+    @Override
+    public Map<String, Object> getRevenueStatistics(String fromDateStr, String toDateStr) {
+        // Default to past month if dates not provided
+        LocalDate now = LocalDate.now();
+        LocalDate fromDate = fromDateStr != null ?
+                LocalDate.parse(fromDateStr) :
+                now.minusMonths(1);
 
-        } catch (Exception e) {
-            log.error("Error update room status", e);
-            throw new RuntimeException("Failed to update room status: " + e.getMessage());
+        LocalDate toDate = toDateStr != null ?
+                LocalDate.parse(toDateStr) :
+                now;
+
+        // Ensure fromDate is before toDate
+        if (fromDate.isAfter(toDate)) {
+            LocalDate temp = fromDate;
+            fromDate = toDate;
+            toDate = temp;
         }
-        return true;
+
+        Timestamp startTimestamp = Timestamp.valueOf(fromDate.atStartOfDay());
+        Timestamp endTimestamp = Timestamp.valueOf(toDate.plusDays(1).atStartOfDay());
+
+        List<Transaction> transactions = transactionRepository.findByCreatedAtBetween(
+                startTimestamp, endTimestamp);
+        System.out.println("Transactions: " + transactions);
+        for (Transaction transaction : transactions) {
+            System.out.println("Transaction ID: " + transaction.getId());
+            System.out.println("Paid Amount: " + transaction.getPaidAmount());
+        }
+
+        // Calculate total revenue
+        double totalRevenue = transactions.stream()
+                .mapToDouble(Transaction::getPaidAmount)
+                .sum();
+
+        // Create a simplified response with just the total revenue
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalRevenue", totalRevenue);
+        result.put("fromDate", fromDate.toString());
+        result.put("toDate", toDate.toString());
+        result.put("transactionCount", transactions.size());
+
+        return result;
+    }
+
+
+
+    @Override
+    public Map<String, Object> getBookingStatistics(String fromDateStr, String toDateStr) {
+        // Default to past month if dates not provided
+        LocalDate now = LocalDate.now();
+        LocalDate fromDate = fromDateStr != null ?
+                LocalDate.parse(fromDateStr) :
+                now.minusMonths(1);
+
+        LocalDate toDate = toDateStr != null ?
+                LocalDate.parse(toDateStr) :
+                now;
+
+        // Ensure fromDate is before toDate
+        if (fromDate.isAfter(toDate)) {
+            LocalDate temp = fromDate;
+            fromDate = toDate;
+            toDate = temp;
+        }
+
+        Timestamp startTimestamp = Timestamp.valueOf(fromDate.atStartOfDay());
+        Timestamp endTimestamp = Timestamp.valueOf(toDate.plusDays(1).atStartOfDay());
+
+        // Get all transactions in the date range
+        List<Transaction> transactions = transactionRepository.findByCreatedAtBetween(
+                startTimestamp, endTimestamp);
+
+        // Count bookings by status
+        long newBookings = transactions.stream()
+                .filter(t -> t.getPaymentStatus() == PaymentStatus.PENDING)
+                .count();
+
+        long cancelledBookings = transactions.stream()
+                .filter(t -> t.getPaymentStatus() == PaymentStatus.CANCELLED)
+                .count();
+
+        long completedBookings = transactions.stream()
+                .filter(t -> t.getPaymentStatus() == PaymentStatus.COMPLETED)
+                .count();
+
+        // Create response
+        Map<String, Object> result = new HashMap<>();
+        result.put("newBookings", newBookings);
+        result.put("cancelledBookings", cancelledBookings);
+        result.put("completedBookings", completedBookings);
+        result.put("totalBookings", transactions.size());
+        result.put("fromDate", fromDate.toString());
+        result.put("toDate", toDate.toString());
+
+        // Optional: Add daily breakdown
+        Map<String, Map<String, Long>> dailyStats = transactions.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t.getCreatedAt().toLocalDateTime().toLocalDate().toString(),
+                        Collectors.groupingBy(
+                                t -> t.getPaymentStatus().toString(),
+                                Collectors.counting()
+                        )
+                ));
+        result.put("dailyBreakdown", dailyStats);
+
+        return result;
     }
 }

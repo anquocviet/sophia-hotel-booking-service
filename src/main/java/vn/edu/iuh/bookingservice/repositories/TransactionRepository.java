@@ -1,5 +1,6 @@
 package vn.edu.iuh.bookingservice.repositories;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.repository.CrudRepository;
@@ -17,4 +18,5 @@ public interface TransactionRepository extends CrudRepository<Transaction, UUID>
     List<Transaction> findAllByCart_UserId(UUID userId);
     
     long count();
+    List<Transaction> findByCreatedAtBetween(Timestamp startDate, Timestamp endDate);
 }

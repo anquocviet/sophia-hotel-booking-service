@@ -11,6 +11,7 @@ import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 import vn.edu.iuh.bookingservice.services.TransactionService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -66,5 +67,44 @@ public class TransactionController {
         // lay size getAllTransactions
         List<TransactionResponse> transactions = transactionService.getAllTransactions();
         return ResponseEntity.ok((long) transactions.size());
+    }
+
+
+  
+    /**
+     * b. Thống kê doanh thu (Revenue Statistics)
+     * API: GET /api/statistics/revenue?from=YYYY-MM-DD&to=YYYY-MM-DD
+     * Dữ liệu trả về: Doanh thu theo thời gian/khách sạn.
+     * Mục đích: Theo dõi hiệu quả kinh doanh, dự báo doanh thu.
+     * @param from
+     * @param to
+     * @return
+     */
+    @GetMapping("/statistics/revenue")
+    public ResponseEntity<Map<String, Object>> getRevenueStatistics(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return ResponseEntity.ok(transactionService.getRevenueStatistics(from, to));
+    }
+
+
+    /**
+     *    /**
+     *      * d. Thống kê booking (Booking Statistics)
+     *      * API: GET /api/statistics/bookings?from=YYYY-MM-DD&to=YYYY-MM-DD
+     *      * Dữ liệu trả về: Số lượng booking mới, booking hủy, booking hoàn thành, theo thời gian/khách sạn.
+     *      * Mục đích: Theo dõi hành vi khách hàng, dự báo nhu cầu.
+     *      * @param fromDateStr
+     *      * @param toDateStr
+     *      * @return
+     * @param from
+     * @param to
+     * @return
+     */
+    @GetMapping("/statistics/bookings")
+    public ResponseEntity<Map<String, Object>> getBookingStatistics(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return ResponseEntity.ok(transactionService.getBookingStatistics(from, to));
     }
 }

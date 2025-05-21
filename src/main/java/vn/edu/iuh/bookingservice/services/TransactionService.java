@@ -4,6 +4,7 @@ import java.util.List;
 import vn.edu.iuh.bookingservice.dtos.requests.TransactionRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.TransactionResponse;
 
+import java.util.Map;
 import java.util.UUID;
 import vn.edu.iuh.bookingservice.enums.PaymentStatus;
 
@@ -21,4 +22,6 @@ public interface TransactionService {
     
     List<TransactionResponse> getTransactionsByUserId(UUID userId);
     long countAllTransactions();
+    Map<String, Object> getRevenueStatistics(String fromDate, String toDate);
+    Map<String, Object> getBookingStatistics(String fromDate, String toDate);
 }
