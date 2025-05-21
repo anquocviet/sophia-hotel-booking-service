@@ -96,10 +96,14 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<TransactionResponse> getTransactionsByUserId(UUID userId) {
-        List<Transaction> transactions = transactionRepository.findAllByCart_UserId(userId);
-        return transactions.stream()
+        return transactionRepository.findAllByCart_UserId(userId).stream()
                 .map(transactionMapper::toResponse)
                 .toList();
+    }
+    
+    @Override
+    public long countAllTransactions() {
+        return transactionRepository.count();
     }
 
     @Override
