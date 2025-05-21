@@ -20,8 +20,6 @@ public class CartRequest {
     @NotNull(message = "User ID is required")
     private UUID userId;
     
-    private CartStatus status;
-    
     @NotEmpty(message = "Cart must contain at least one item")
     @Valid
     private List<CartItemRequest> cartItems;

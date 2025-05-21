@@ -16,13 +16,11 @@ public interface TransactionMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "transactionId", expression = "java(generateTransactionId())")
-    @Mapping(target = "cart", source = "cart")
-    @Mapping(target = "paymentMethod", source = "request.paymentMethod")
-    @Mapping(target = "paymentStatus", expression = "java(request.getPaymentStatus() != null ? request.getPaymentStatus() : PaymentStatus.PENDING)")
-    @Mapping(target = "paidAmount", source = "request.paidAmount")
     @Mapping(target = "createdAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "updatedAt", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "paidAmount", ignore = true)
+    @Mapping(target = "paymentStatus", expression = "java(PaymentStatus.PENDING)")
     Transaction toEntity(TransactionRequest request, Cart cart);
     
     TransactionResponse toResponse(Transaction transaction);

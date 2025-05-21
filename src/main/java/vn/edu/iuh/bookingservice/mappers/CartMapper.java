@@ -5,6 +5,7 @@ import vn.edu.iuh.bookingservice.dtos.requests.CartRequest;
 import vn.edu.iuh.bookingservice.dtos.responses.CartResponse;
 import vn.edu.iuh.bookingservice.entities.Cart;
 import vn.edu.iuh.bookingservice.entities.CartItem;
+import vn.edu.iuh.bookingservice.enums.CartStatus;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -27,7 +28,7 @@ public class CartMapper {
         
         Cart cart = new Cart();
         cart.setUserId(request.getUserId());
-        cart.setStatus(request.getStatus());
+        cart.setStatus(CartStatus.AVAILABLE);
         cart.setCreatedAt(Timestamp.from(Instant.now()));
         
         return cart;
@@ -63,11 +64,6 @@ public class CartMapper {
         if (request == null || cart == null) {
             return;
         }
-        
-        if (request.getStatus() != null) {
-            cart.setStatus(request.getStatus());
-        }
-        
         cart.setUpdatedAt(Timestamp.from(Instant.now()));
     }
 }
