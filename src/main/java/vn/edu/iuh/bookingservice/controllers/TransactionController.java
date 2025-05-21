@@ -60,4 +60,11 @@ public class TransactionController {
     public ResponseEntity<List<TransactionResponse>> getTransactionsByUserId(@PathVariable UUID userId) {
         return ResponseEntity.ok(transactionService.getTransactionsByUserId(userId));
     }
+    
+    @GetMapping("/count")
+    public ResponseEntity<Long> countAllTransactions() {
+        // lay size getAllTransactions
+        List<TransactionResponse> transactions = transactionService.getAllTransactions();
+        return ResponseEntity.ok((long) transactions.size());
+    }
 }

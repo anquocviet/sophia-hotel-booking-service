@@ -20,4 +20,5 @@ public interface TransactionService {
     List<TransactionResponse> getTransactionsByPaymentStatus(PaymentStatus status);
     
     List<TransactionResponse> getTransactionsByUserId(UUID userId);
+    long countAllTransactions();
 }
