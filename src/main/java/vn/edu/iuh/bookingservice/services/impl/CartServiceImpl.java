@@ -22,6 +22,7 @@ import vn.edu.iuh.bookingservice.services.CartService;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -109,22 +110,14 @@ public class CartServiceImpl implements CartService {
         }
         
         // Find the most recent active cart
-        Cart activeCart = userCarts.stream()
-                .filter(cart -> cart.getStatus() != null && 
-                               !cart.getStatus().isTerminal())
-                .findFirst()
-                .orElse(
-                    // If no active cart, return the most recent cart
-                    userCarts.stream()
-                        .max((cart1, cart2) -> {
-                            if (cart1.getCreatedAt() == null) return -1;
-                            if (cart2.getCreatedAt() == null) return 1;
-                            return cart1.getCreatedAt().compareTo(cart2.getCreatedAt());
-                        })
-                        .orElse(userCarts.get(0))
-                );
-        
-        return cartMapper.toResponse(activeCart);
+        Optional<Cart> cartActive = userCarts.stream()
+                .filter(cart -> cart.getStatus() != null &&
+                        !cart.getStatus().isTerminal() &&
+                        cart.getDeletedAt() == null
+                )
+                .findFirst();
+
+        return cartActive.map(cartMapper::toResponse).orElse(null);
     }
 
     private Cart findCartById(UUID id) {
